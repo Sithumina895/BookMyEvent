@@ -36,7 +36,7 @@ const seedData = async () => {
         venue: 'Central Park Main Meadow, NY',
         ticketPrice: 149.99,
         totalCapacity: 5000,
-        availableSeats: 5000,
+        availableSeats: 1580, // 3,420 sold (68%)
         organizer: organizer._id,
         imageUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=2000&auto=format&fit=crop'
       },
@@ -48,7 +48,7 @@ const seedData = async () => {
         venue: 'Moscone Center, San Francisco',
         ticketPrice: 499.00,
         totalCapacity: 1200,
-        availableSeats: 1200,
+        availableSeats: 310, // 890 sold (74%)
         organizer: organizer._id,
         imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2000&auto=format&fit=crop'
       },
@@ -60,7 +60,7 @@ const seedData = async () => {
         venue: 'Downtown Convention Center',
         ticketPrice: 85.50,
         totalCapacity: 800,
-        availableSeats: 800,
+        availableSeats: 260, // 540 sold (68%)
         organizer: organizer._id,
         imageUrl: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2000&auto=format&fit=crop'
       },
@@ -72,7 +72,7 @@ const seedData = async () => {
         venue: 'The Innovation Hub',
         ticketPrice: 0, // Free event
         totalCapacity: 200,
-        availableSeats: 200,
+        availableSeats: 45, // 155 booked (78%)
         organizer: organizer._id,
         imageUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32d7?q=80&w=2000&auto=format&fit=crop'
       },
@@ -84,7 +84,7 @@ const seedData = async () => {
         venue: 'Creative Studios, Brooklyn',
         ticketPrice: 65.00,
         totalCapacity: 30,
-        availableSeats: 30,
+        availableSeats: 6, // 24 sold (80%)
         organizer: organizer._id,
         imageUrl: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=2000&auto=format&fit=crop'
       }

@@ -5,7 +5,7 @@ const Event = require('../models/Event');
 // @access  Public
 const getEvents = async (req, res, next) => {
   try {
-    const { category, search } = req.query;
+    const { category, search, organizer } = req.query;
     let query = {};
     
     if (category) {
@@ -14,6 +14,10 @@ const getEvents = async (req, res, next) => {
     
     if (search) {
       query.title = { $regex: search, $options: 'i' };
+    }
+
+    if (organizer) {
+      query.organizer = organizer;
     }
 
     const events = await Event.find(query)

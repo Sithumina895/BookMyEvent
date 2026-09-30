@@ -20,6 +20,11 @@ const createBooking = async (req, res, next) => {
       return res.status(400).json({ message: 'Cannot book tickets for a past event' });
     }
 
+    // Business Logic Rule 2b: Prevent event organizers from booking their own event
+    if (event.organizer.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'Event organizers cannot book tickets for their own events.' });
+    }
+
     // Business Logic Rule 1: Capacity & Seat Availability Check
     if (numberOfTickets > event.availableSeats) {
       return res.status(400).json({ 

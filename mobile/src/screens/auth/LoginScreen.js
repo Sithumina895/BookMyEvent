@@ -1,198 +1,261 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 import colors from '../../theme/colors';
+import { Mail, Lock, Sparkles, ArrowLeft } from 'lucide-react-native';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, isLoading } = useContext(AuthContext);
 
-  const validateEmail = (email) => {
+  const validateEmail = (val) => {
     const re = /\S+@\S+\.\S+/;
-    return re.test(email);
+    return re.test(val);
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       Toast.show({
         type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please fill in all fields',
+        text1: 'Required Fields',
+        text2: 'Please enter both your email and password.',
       });
       return;
     }
 
-    if (!validateEmail(email)) {
+    if (!validateEmail(email.trim())) {
       Toast.show({
         type: 'error',
-        text1: 'Validation Error',
-        text2: 'Please enter a valid email address',
+        text1: 'Invalid Email',
+        text2: 'Please provide a valid email format.',
       });
       return;
     }
 
-    const result = await login(email, password);
-    
+    const result = await login(email.trim(), password);
+
     if (result.success) {
       Toast.show({
         type: 'success',
-        text1: 'Login Successful',
-        text2: 'Welcome back!',
+        text1: 'Welcome Back',
+        text2: 'Logged in successfully.',
       });
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('Main');
+      }
     } else {
       Toast.show({
         type: 'error',
-        text1: 'Login Failed',
-        text2: result.message || 'Invalid credentials. Please try again.',
+        text1: 'Sign In Failed',
+        text2: result.message || 'Invalid credentials. Please verify your details.',
       });
     }
   };
 
   return (
-    <View style={styles.mainContainer}>
-      {/* Background Shapes */}
-      <View style={styles.shape1} />
-      <View style={styles.shape2} />
-      <View style={styles.shape3} />
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.mainContainer}>
+        {/* Subtle Ambient Shapes */}
+        <View style={styles.ambientGlow} />
 
-      <KeyboardAvoidingView 
-        style={styles.container} 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue exploring events</Text>
-          </View>
-
-          <View style={styles.form}>
-            <CustomInput
-              label="Email Address"
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-            />
-            <CustomInput
-              label="Password"
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-
-            <View style={styles.buttonContainer}>
-              <CustomButton 
-                title="Sign In" 
-                onPress={handleLogin} 
-                loading={isLoading} 
-              />
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Top Back/Dismiss Button */}
+            <View style={styles.topBar}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => {
+                  if (navigation.canGoBack()) {
+                    navigation.goBack();
+                  } else {
+                    navigation.navigate('Main');
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <ArrowLeft size={20} color={colors.text} />
+              </TouchableOpacity>
             </View>
-          </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <Text style={styles.footerLink} onPress={() => navigation.navigate('Register')}>
-              Sign Up
-            </Text>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+            {/* Logo & Header */}
+            <View style={styles.header}>
+              <View style={styles.badgeRow}>
+                <Sparkles size={14} color={colors.primary} style={{ marginRight: 6 }} />
+                <Text style={styles.badgeText}>BOOKMYEVENT 2026</Text>
+              </View>
+
+              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.subtitle}>
+                Sign in to discover curated events, live shows, and your digital passes.
+              </Text>
+            </View>
+
+            {/* Form Card */}
+            <View style={styles.formCard}>
+              <CustomInput
+                label="Email Address"
+                placeholder="name@example.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                icon={Mail}
+              />
+
+              <CustomInput
+                label="Password"
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                icon={Lock}
+              />
+
+              <View style={styles.buttonContainer}>
+                <CustomButton
+                  title="Sign In"
+                  onPress={handleLogin}
+                  loading={isLoading}
+                  size="lg"
+                />
+              </View>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <Text style={styles.footerLink}>Create Account</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
+  safeContainer: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  mainContainer: {
+    flex: 1,
     position: 'relative',
   },
-  shape1: {
+  ambientGlow: {
     position: 'absolute',
-    top: -100,
+    top: -120,
     right: -100,
-    width: 350,
-    height: 350,
-    borderRadius: 175,
-    backgroundColor: 'rgba(204, 75, 55, 0.08)', // Primary color with low opacity
-  },
-  shape2: {
-    position: 'absolute',
-    bottom: -80,
-    left: -100,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(204, 75, 55, 0.05)',
-  },
-  shape3: {
-    position: 'absolute',
-    top: 250,
-    left: -50,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(42, 157, 143, 0.06)', // Accent color
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    backgroundColor: 'rgba(224, 77, 56, 0.08)',
   },
   container: {
     flex: 1,
   },
   scroll: {
     flexGrow: 1,
-    padding: 24,
+    paddingHorizontal: 22,
     justifyContent: 'center',
+    paddingVertical: 24,
   },
   header: {
-    marginBottom: 40,
-    marginTop: 60,
+    marginBottom: 28,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 1.2,
   },
   title: {
     fontSize: 32,
-    fontWeight: '800',
-    color: colors.primary,
-    marginBottom: 8,
+    fontWeight: '900',
+    color: colors.text,
+    letterSpacing: -0.8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
-    color: colors.textLight,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
-  errorContainer: {
-    backgroundColor: '#FCE8E8',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.danger,
+  formCard: {
+    backgroundColor: colors.white,
+    padding: 22,
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    elevation: 2,
+    marginBottom: 24,
   },
-  errorText: {
-    color: colors.danger,
-    fontWeight: '600',
+  topBar: {
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  form: {
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    marginTop: 16,
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 40,
-    marginBottom: 20,
+    alignItems: 'center',
   },
   footerText: {
-    color: colors.textLight,
-    fontSize: 15,
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
   },
   footerLink: {
     color: colors.primary,
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
 
