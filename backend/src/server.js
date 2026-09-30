@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 
 // Route Placeholders (To be implemented)
 app.use('/api/auth', require('./routes/authRoutes'));
-// app.use('/api/events', require('./routes/eventRoutes'));
+app.use('/api/events', require('./routes/eventRoutes'));
 // app.use('/api/bookings', require('./routes/bookingRoutes'));
 
 // Global Error Handler Placeholder
