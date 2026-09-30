@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Event = require('../models/Event');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    Create new booking
 // @route   POST /api/bookings
@@ -43,6 +44,19 @@ const createBooking = async (req, res, next) => {
     // Deduct available seats
     event.availableSeats -= numberOfTickets;
     await event.save();
+
+    // Fetch user for email
+    const User = require('../models/User');
+    const user = await User.findById(req.user._id);
+
+    // Send confirmation email asynchronously (fire and forget)
+    if (user) {
+      sendEmail({
+        email: user.email,
+        subject: `Booking Confirmed: ${event.title}`,
+        message: `Hello ${user.name},\n\nYour booking for ${event.title} is confirmed!\n\nDetails:\nEvent Date: ${new Date(event.date).toLocaleDateString()}\nVenue: ${event.venue}\nTickets: ${numberOfTickets}\nTotal Paid: $${totalPrice.toFixed(2)}\n\nThank you for using BookMyEvent!`,
+      });
+    }
 
     res.status(201).json(booking);
   } catch (error) {
@@ -140,6 +154,20 @@ const updateBookingStatus = async (req, res, next) => {
 
     booking.status = status;
     await booking.save();
+
+    // Send cancellation email if cancelled
+    if (status === 'CANCELLED') {
+      const User = require('../models/User');
+      const user = await User.findById(booking.user);
+      const event = await Event.findById(booking.event);
+      if (user && event) {
+        sendEmail({
+          email: user.email,
+          subject: `Booking Cancelled: ${event.title}`,
+          message: `Hello ${user.name},\n\nYour booking for ${event.title} has been successfully cancelled.\n\nRefund processing (if applicable) will follow our standard policy.\n\nThank you,\nBookMyEvent`,
+        });
+      }
+    }
 
     res.json(booking);
   } catch (error) {

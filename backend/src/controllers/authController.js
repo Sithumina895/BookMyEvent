@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const sendEmail = require('../utils/sendEmail');
 
 // Generate JWT
 const generateToken = (id) => {
@@ -31,6 +32,13 @@ const registerUser = async (req, res, next) => {
     });
 
     if (user) {
+      // Send Welcome Email asynchronously
+      sendEmail({
+        email: user.email,
+        subject: 'Welcome to BookMyEvent!',
+        message: `Hello ${user.name},\n\nWelcome to BookMyEvent! We are thrilled to have you on board as an ${user.role}.\n\nGet ready to discover and experience the best events around you.\n\nBest Regards,\nThe BookMyEvent Team`,
+      });
+
       res.status(201).json({
         _id: user._id,
         name: user.name,
