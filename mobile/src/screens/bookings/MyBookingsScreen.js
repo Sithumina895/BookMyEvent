@@ -2,66 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, FlatList, StyleSheet, Text, ActivityIndicator, RefreshControl, Alert, TouchableOpacity } from 'react-native';
 import client from '../../api/client';
 import colors from '../../theme/colors';
-import { Ticket, Calendar, XCircle, MapPin } from 'lucide-react-native';
+import EventCard from '../../components/EventCard';
+import { Ticket, XCircle } from 'lucide-react-native';
 
-const BookingCard = ({ booking, onCancel }) => {
-  const event = booking.event;
-  const isCancelled = booking.status === 'CANCELLED';
-
-  const date = new Date(event.date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.eventInfo}>
-          <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-          <View style={[styles.statusBadge, isCancelled && styles.statusCancelled]}>
-            <Text style={[styles.statusText, isCancelled && styles.statusTextCancelled]}>
-              {booking.status}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.cardBody}>
-        <View style={styles.detailRow}>
-          <Calendar size={16} color={colors.secondary} />
-          <Text style={styles.detailText}>{date}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <MapPin size={16} color={colors.secondary} />
-          <Text style={styles.detailText} numberOfLines={1}>{event.venue}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Ticket size={16} color={colors.secondary} />
-          <Text style={styles.detailText}>{booking.numberOfTickets} Ticket(s)</Text>
-        </View>
-      </View>
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.totalPrice}>Total: ${booking.totalPrice.toFixed(2)}</Text>
-        {!isCancelled && (
-          <TouchableOpacity 
-            style={styles.cancelButton}
-            onPress={() => onCancel(booking._id)}
-          >
-            <XCircle size={16} color={colors.danger} />
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-};
-
-const MyBookingsScreen = () => {
+const MyBookingsScreen = ({ navigation }) => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('All');
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -106,17 +54,61 @@ const MyBookingsScreen = () => {
     );
   };
 
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <Text style={styles.headerTitle}>Bookings</Text>
+      
+      <View style={styles.tabSwitchContainer}>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'All' && styles.tabButtonActive]}
+          onPress={() => setActiveTab('All')}
+        >
+          <Text style={[styles.tabText, activeTab === 'All' && styles.tabTextActive]}>All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'Past' && styles.tabButtonActive]}
+          onPress={() => setActiveTab('Past')}
+        >
+          <Text style={[styles.tabText, activeTab === 'Past' && styles.tabTextActive]}>Past</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {bookings.length > 0 && (
+         <View style={styles.featuredContainer}>
+           <Text style={styles.sectionHeading}>Upcoming</Text>
+           {/* Using the EventCard for the featured booking UI */}
+           <View style={{ position: 'relative' }}>
+             <EventCard 
+                event={bookings[0].event} 
+                variant="featured"
+                onPress={() => navigation.navigate('EventDetail', { eventId: bookings[0].event._id })}
+             />
+             {!bookings[0].status.includes('CANCELLED') && (
+                <TouchableOpacity 
+                   style={styles.cancelOverlayBtn}
+                   onPress={() => handleCancelBooking(bookings[0]._id)}
+                >
+                   <XCircle size={16} color={colors.white} />
+                   <Text style={styles.cancelOverlayText}>Cancel</Text>
+                </TouchableOpacity>
+             )}
+           </View>
+           <Text style={styles.sectionHeading}>More Bookings</Text>
+         </View>
+      )}
+    </View>
+  );
+
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ticket size={48} color={colors.border} />
       <Text style={styles.emptyText}>No bookings yet</Text>
-      <Text style={styles.emptySubtext}>Your upcoming events will appear here</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {loading ? (
+      {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -124,9 +116,24 @@ const MyBookingsScreen = () => {
         <FlatList
           data={bookings}
           keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <BookingCard booking={item} onCancel={handleCancelBooking} />
-          )}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item, index }) => {
+            if (index === 0) return null; // Skip first item (featured)
+            return (
+              <View style={styles.gridItemWrapper}>
+                 <EventCard 
+                   event={item.event} 
+                   variant="grid"
+                   onPress={() => navigation.navigate('EventDetail', { eventId: item.event._id })} 
+                 />
+                 {item.status === 'CANCELLED' && (
+                    <Text style={styles.cancelledText}>CANCELLED</Text>
+                 )}
+              </View>
+            );
+          }}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -141,7 +148,7 @@ const MyBookingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.light,
   },
   loadingContainer: {
     flex: 1,
@@ -149,95 +156,90 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   list: {
-    padding: 20,
+    paddingBottom: 120, // Space for floating tab bar
   },
-  card: {
+  headerContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 50,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 20,
+  },
+  tabSwitchContainer: {
+    flexDirection: 'row',
     backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 30,
+    padding: 4,
+    width: 200,
+    marginBottom: 32,
     borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  cardHeader: {
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 26,
+    alignItems: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.secondary,
+  },
+  tabTextActive: {
+    color: colors.white,
+  },
+  featuredContainer: {
     marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.background,
-    paddingBottom: 16,
   },
-  eventInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  eventTitle: {
+  sectionHeading: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.primary,
-    flex: 1,
-    marginRight: 12,
-  },
-  statusBadge: {
-    backgroundColor: 'rgba(42, 157, 143, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusCancelled: {
-    backgroundColor: 'rgba(231, 111, 81, 0.1)',
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.success,
-  },
-  statusTextCancelled: {
-    color: colors.danger,
-  },
-  cardBody: {
+    color: colors.text,
     marginBottom: 16,
   },
-  detailRow: {
+  cancelOverlayBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  detailText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.background,
-  },
-  totalPrice: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  cancelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(231, 111, 81, 0.05)',
+    paddingVertical: 6,
+    borderRadius: 20,
   },
-  cancelText: {
-    marginLeft: 6,
-    fontSize: 13,
+  cancelOverlayText: {
+    color: colors.white,
+    fontSize: 12,
     fontWeight: '600',
-    color: colors.danger,
+    marginLeft: 4,
+  },
+  row: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+  },
+  gridItemWrapper: {
+     position: 'relative'
+  },
+  cancelledText: {
+     position: 'absolute',
+     top: 16,
+     right: 16,
+     fontSize: 10,
+     fontWeight: '800',
+     color: colors.danger,
+     backgroundColor: 'rgba(255,255,255,0.9)',
+     paddingHorizontal: 6,
+     paddingVertical: 2,
+     borderRadius: 4,
+     overflow: 'hidden'
   },
   emptyContainer: {
     alignItems: 'center',
@@ -249,11 +251,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: colors.primary,
-  },
-  emptySubtext: {
-    marginTop: 8,
-    fontSize: 15,
-    color: colors.secondary,
   }
 });
 

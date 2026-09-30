@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, Alert, TouchableOpacity, Dimensions } from 'react-native';
 import client from '../../api/client';
 import colors from '../../theme/colors';
-import { Calendar, MapPin, Users, Info, Ticket } from 'lucide-react-native';
-import CustomButton from '../../components/CustomButton';
+import { Calendar, MonitorPlay, ShieldAlert, Heart, ChevronLeft, Star } from 'lucide-react-native';
 import { AuthContext } from '../../context/AuthContext';
 import CustomInput from '../../components/CustomInput';
+
+const { height } = Dimensions.get('window');
 
 const EventDetailScreen = ({ route, navigation }) => {
   const { eventId } = route.params;
@@ -14,6 +15,7 @@ const EventDetailScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [tickets, setTickets] = useState('1');
+  const [activeTab, setActiveTab] = useState('Date and Time');
 
   useEffect(() => {
     fetchEvent();
@@ -54,8 +56,6 @@ const EventDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const isOrganizer = user?._id === event?.organizer?._id;
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -66,98 +66,97 @@ const EventDetailScreen = ({ route, navigation }) => {
 
   if (!event) return null;
 
-  const date = new Date(event.date).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Image 
-          source={{ uri: event.imageUrl || 'https://via.placeholder.com/500x300' }} 
-          style={styles.image} 
-        />
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         
-        <View style={styles.content}>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{event.category}</Text>
-          </View>
-          
-          <Text style={styles.title}>{event.title}</Text>
-          
-          <View style={styles.infoSection}>
-            <View style={styles.infoRow}>
-              <Calendar size={20} color={colors.primary} />
-              <View style={styles.infoTextContainer}>
-                <Text style={styles.infoTitle}>Date</Text>
-                <Text style={styles.infoValue}>{date}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <MapPin size={20} color={colors.primary} />
-              <View style={styles.infoTextContainer}>
-                <Text style={styles.infoTitle}>Venue</Text>
-                <Text style={styles.infoValue}>{event.venue}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Users size={20} color={colors.primary} />
-              <View style={styles.infoTextContainer}>
-                <Text style={styles.infoTitle}>Organizer</Text>
-                <Text style={styles.infoValue}>{event.organizer?.name || 'Event Organizer'}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.descriptionSection}>
-            <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.description}>{event.description}</Text>
+        {/* Header Image Area */}
+        <View style={styles.heroContainer}>
+          <Image 
+            source={{ uri: event.imageUrl || 'https://via.placeholder.com/500x300' }} 
+            style={styles.heroImage} 
+          />
+          <View style={styles.headerButtons}>
+            <TouchableOpacity style={styles.circularButton} onPress={() => navigation.goBack()}>
+              <ChevronLeft size={24} color={colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.circularButton}>
+              <Heart size={20} color={colors.primary} fill={colors.primary} />
+            </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
 
-      {/* Bottom Action Bar */}
-      <View style={styles.bottomBar}>
-        {!isOrganizer ? (
-          <>
+        {/* Content Card */}
+        <View style={styles.contentCard}>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{event.title}</Text>
             <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>Price</Text>
-              <Text style={styles.priceValue}>${event.ticketPrice.toFixed(2)}</Text>
-              <Text style={styles.seatsLeft}>{event.availableSeats} seats left</Text>
+              <Text style={styles.priceCurrent}>${event.ticketPrice.toFixed(0)}</Text>
+              <Text style={styles.priceOld}>${(event.ticketPrice * 1.25).toFixed(0)}</Text>
             </View>
+          </View>
+          
+          <View style={styles.ratingRow}>
+            <Star size={16} color={colors.primary} fill={colors.primary} />
+            <Text style={styles.ratingText}>4.8 <Text style={styles.ratingSubtext}>(194 reading)</Text></Text>
+          </View>
+
+          {/* Feature Tabs Row */}
+          <View style={styles.featuresRow}>
+            <TouchableOpacity style={styles.featureItem} onPress={() => setActiveTab('Online event')}>
+              <MonitorPlay size={24} color={activeTab === 'Online event' ? colors.primary : colors.secondary} />
+              <Text style={[styles.featureText, activeTab === 'Online event' && styles.featureTextActive]}>Online event</Text>
+              {activeTab === 'Online event' && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.featureItem} onPress={() => setActiveTab('Refund policy')}>
+              <ShieldAlert size={24} color={activeTab === 'Refund policy' ? colors.primary : colors.secondary} />
+              <Text style={[styles.featureText, activeTab === 'Refund policy' && styles.featureTextActive]}>Refund policy</Text>
+              {activeTab === 'Refund policy' && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.featureItem} onPress={() => setActiveTab('Date and Time')}>
+              <Calendar size={24} color={activeTab === 'Date and Time' ? colors.primary : colors.secondary} />
+              <Text style={[styles.featureText, activeTab === 'Date and Time' && styles.featureTextActive]}>Date and Time</Text>
+              {activeTab === 'Date and Time' && <View style={styles.activeIndicator} />}
+            </TouchableOpacity>
+          </View>
+
+          {/* Tab Content Placeholder */}
+          <View style={styles.tabContent}>
+            <Text style={styles.sectionTitle}>Details</Text>
+            <Text style={styles.descriptionText}>{event.description}</Text>
+            <Text style={styles.descriptionText}>Venue: {event.venue}</Text>
+            <Text style={styles.descriptionText}>Date: {new Date(event.date).toLocaleDateString()}</Text>
             
-            <View style={styles.bookingControls}>
-              <View style={styles.ticketInputContainer}>
-                <CustomInput 
+            <View style={styles.inputContainer}>
+               <Text style={styles.inputLabel}>Number of Tickets:</Text>
+               <CustomInput 
                   value={tickets}
                   onChangeText={setTickets}
                   keyboardType="number-pad"
-                  placeholder="Qty"
-                />
-              </View>
-              <View style={styles.bookButtonWrapper}>
-                <CustomButton 
-                  title="Book Now" 
-                  onPress={handleBook}
-                  loading={bookingLoading}
-                  disabled={event.availableSeats === 0}
-                />
-              </View>
-            </View>
-          </>
-        ) : (
-          <View style={styles.organizerActions}>
-            <Text style={styles.organizerText}>You are organizing this event</Text>
-            <View style={styles.bookButtonWrapper}>
-               <CustomButton title="Edit Event" variant="outline" onPress={() => {}} />
+                  placeholder="1"
+               />
+               <Text style={styles.seatsLeft}>{event.availableSeats} seats remaining</Text>
             </View>
           </View>
-        )}
+        </View>
+
+      </ScrollView>
+
+      {/* Sticky Bottom Bar */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity 
+          style={[styles.bookButton, event.availableSeats === 0 && styles.bookButtonDisabled]} 
+          onPress={handleBook}
+          disabled={event.availableSeats === 0 || bookingLoading}
+        >
+          {bookingLoading ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <Text style={styles.bookButtonText}>Get tickets</Text>
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -166,7 +165,7 @@ const EventDetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
   loadingContainer: {
     flex: 1,
@@ -174,78 +173,143 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scroll: {
-    paddingBottom: 120,
+    paddingBottom: 100,
   },
-  image: {
+  heroContainer: {
+    height: height * 0.4,
     width: '100%',
-    height: 300,
+    position: 'relative',
   },
-  content: {
-    padding: 24,
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  headerButtons: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  circularButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.white,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    marginTop: -30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(26, 26, 36, 0.05)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginBottom: 16,
+  contentCard: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -32,
+    paddingHorizontal: 24,
+    paddingTop: 32,
   },
-  categoryText: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
   },
   title: {
-    fontSize: 28,
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.text,
+    marginRight: 16,
+    lineHeight: 32,
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  priceCurrent: {
+    fontSize: 18,
     fontWeight: '800',
     color: colors.primary,
-    marginBottom: 24,
-    lineHeight: 34,
   },
-  infoSection: {
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
+  priceOld: {
+    fontSize: 12,
+    color: colors.secondary,
+    textDecorationLine: 'line-through',
+    marginTop: 2,
   },
-  infoRow: {
+  ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
-  infoTextContainer: {
-    marginLeft: 16,
+  ratingText: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  ratingSubtext: {
+    color: colors.secondary,
+    fontWeight: '500',
+  },
+  featuresRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+  },
+  featureItem: {
+    alignItems: 'center',
     flex: 1,
   },
-  infoTitle: {
-    fontSize: 13,
+  featureText: {
+    marginTop: 8,
+    fontSize: 12,
     color: colors.secondary,
-    marginBottom: 2,
+    fontWeight: '500',
   },
-  infoValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary,
+  featureTextActive: {
+    color: colors.text,
+    fontWeight: '700',
   },
-  descriptionSection: {
+  activeIndicator: {
+    width: 20,
+    height: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+    marginTop: 6,
+  },
+  tabContent: {
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.text,
+    marginBottom: 16,
+  },
+  descriptionText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: colors.textLight,
     marginBottom: 12,
   },
-  description: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: colors.textLight,
+  inputContainer: {
+    marginTop: 24,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  seatsLeft: {
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: -8,
   },
   bottomBar: {
     position: 'absolute',
@@ -253,59 +317,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: colors.white,
-    padding: 20,
-    paddingBottom: 30,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  },
+  bookButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 18,
+    borderRadius: 30,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 10,
   },
-  priceContainer: {
-    flex: 1,
+  bookButtonDisabled: {
+    backgroundColor: colors.secondary,
   },
-  priceLabel: {
-    fontSize: 13,
-    color: colors.secondary,
-  },
-  priceValue: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  seatsLeft: {
-    fontSize: 12,
-    color: colors.accent,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  bookingControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1.5,
-  },
-  ticketInputContainer: {
-    width: 60,
-    marginRight: 12,
-  },
-  bookButtonWrapper: {
-    flex: 1,
-  },
-  organizerActions: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  organizerText: {
-    fontSize: 14,
-    color: colors.secondary,
-    flex: 1,
+  bookButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '700',
   }
 });
 
