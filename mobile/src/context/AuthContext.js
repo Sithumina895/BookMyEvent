@@ -6,7 +6,8 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }) => {
       console.log('Error restoring token/user', e);
       await AsyncStorage.removeItem('userToken');
     } finally {
-      setIsLoading(false);
+      setIsAppLoading(false);
     }
   };
 
@@ -39,11 +40,13 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.setItem('userToken', token);
       setUser(userData);
       setIsLoading(false);
-      return true;
+      return { success: true };
     } catch (e) {
       setIsLoading(false);
-      setError(e.response?.data?.message || 'Login failed');
-      return false;
+      const validationError = e.response?.data?.errors?.[0]?.msg;
+      const errorMsg = validationError || e.response?.data?.message || e.customMessage || e.message || 'Login failed';
+      setError(errorMsg);
+      return { success: false, message: errorMsg };
     }
   };
 
@@ -56,11 +59,13 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.setItem('userToken', token);
       setUser(userData);
       setIsLoading(false);
-      return true;
+      return { success: true };
     } catch (e) {
       setIsLoading(false);
-      setError(e.response?.data?.message || 'Registration failed');
-      return false;
+      const validationError = e.response?.data?.errors?.[0]?.msg;
+      const errorMsg = validationError || e.response?.data?.message || e.customMessage || e.message || 'Registration failed';
+      setError(errorMsg);
+      return { success: false, message: errorMsg };
     }
   };
 
@@ -78,7 +83,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, error, login, register, logout, setError }}
+      value={{ user, isAppLoading, isLoading, error, login, register, logout, setError }}
     >
       {children}
     </AuthContext.Provider>

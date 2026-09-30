@@ -1,5 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
@@ -11,106 +12,179 @@ const RegisterScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('user'); // user or organizer
   
-  const { register, isLoading, error } = useContext(AuthContext);
-  const [localError, setLocalError] = useState('');
+  const { register, isLoading } = useContext(AuthContext);
+
+  const validateEmail = (email) => {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
+  };
 
   const handleRegister = async () => {
-    setLocalError('');
     if (!name || !email || !password) {
-      setLocalError('Please fill in all fields');
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please fill in all fields',
+      });
       return;
     }
-    await register(name, email, password, role);
+
+    if (!validateEmail(email)) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please enter a valid email address',
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Password must be at least 6 characters long',
+      });
+      return;
+    }
+
+    const result = await register(name, email, password, role);
+    if (result.success) {
+      Toast.show({
+        type: 'success',
+        text1: 'Registration Successful',
+        text2: 'Welcome to BookMyEvent!',
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Registration Failed',
+        text2: result.message || 'Could not complete registration. Please try again.',
+      });
+    }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join us and discover amazing events</Text>
-        </View>
+    <View style={styles.mainContainer}>
+      {/* Background Shapes */}
+      <View style={styles.shape1} />
+      <View style={styles.shape2} />
+      <View style={styles.shape3} />
 
-        {(error || localError) ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error || localError}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.form}>
-          <CustomInput
-            label="Full Name"
-            placeholder="Enter your name"
-            value={name}
-            onChangeText={setName}
-          />
-          <CustomInput
-            label="Email Address"
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-          />
-          <CustomInput
-            label="Password"
-            placeholder="Create a password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          <Text style={styles.roleLabel}>I am a:</Text>
-          <View style={styles.roleContainer}>
-            <TouchableOpacity 
-              style={[styles.roleButton, role === 'user' && styles.roleButtonActive]} 
-              onPress={() => setRole('user')}
-            >
-              <Text style={[styles.roleText, role === 'user' && styles.roleTextActive]}>Attendee</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.roleButton, role === 'organizer' && styles.roleButtonActive]} 
-              onPress={() => setRole('organizer')}
-            >
-              <Text style={[styles.roleText, role === 'organizer' && styles.roleTextActive]}>Organizer</Text>
-            </TouchableOpacity>
+      <KeyboardAvoidingView 
+        style={styles.container} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join us and discover amazing events</Text>
           </View>
 
-          <View style={styles.buttonContainer}>
-            <CustomButton 
-              title="Sign Up" 
-              onPress={handleRegister} 
-              loading={isLoading} 
+          <View style={styles.form}>
+            <CustomInput
+              label="Full Name"
+              placeholder="Enter your name"
+              value={name}
+              onChangeText={setName}
             />
-          </View>
-        </View>
+            <CustomInput
+              label="Email Address"
+              placeholder="Enter your email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+            />
+            <CustomInput
+              label="Password"
+              placeholder="Create a password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
-          <Text style={styles.footerLink} onPress={() => navigation.goBack()}>
-            Sign In
-          </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <View style={styles.roleContainer}>
+              <Text style={styles.roleLabel}>I am a:</Text>
+              <View style={styles.roleToggle}>
+                <TouchableOpacity 
+                  style={[styles.roleButton, role === 'user' && styles.roleButtonActive]}
+                  onPress={() => setRole('user')}
+                >
+                  <Text style={[styles.roleText, role === 'user' && styles.roleTextActive]}>Attendee</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.roleButton, role === 'organizer' && styles.roleButtonActive]}
+                  onPress={() => setRole('organizer')}
+                >
+                  <Text style={[styles.roleText, role === 'organizer' && styles.roleTextActive]}>Organizer</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <CustomButton 
+                title="Create Account" 
+                onPress={handleRegister} 
+                loading={isLoading} 
+              />
+            </View>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={styles.footerLink} onPress={() => navigation.goBack()}>
+              Sign In
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
     backgroundColor: colors.background,
+    position: 'relative',
+  },
+  shape1: {
+    position: 'absolute',
+    top: -80,
+    left: -120,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(204, 75, 55, 0.07)', 
+  },
+  shape2: {
+    position: 'absolute',
+    bottom: -100,
+    right: -100,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: 'rgba(204, 75, 55, 0.05)',
+  },
+  shape3: {
+    position: 'absolute',
+    top: 300,
+    right: -80,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(42, 157, 143, 0.05)', 
+  },
+  container: {
+    flex: 1,
   },
   scroll: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 60,
+    justifyContent: 'center',
   },
   header: {
-    marginBottom: 30,
+    marginBottom: 32,
+    marginTop: 40,
   },
   title: {
     fontSize: 32,
@@ -137,16 +211,18 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: 20,
   },
+  roleContainer: {
+    marginBottom: 24,
+  },
   roleLabel: {
-    marginBottom: 8,
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: 12,
   },
-  roleContainer: {
+  roleToggle: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
   },
   roleButton: {
     flex: 1,
