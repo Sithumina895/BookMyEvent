@@ -5,7 +5,9 @@ const path = require('path');
 const connectDB = require('./config/db');
 
 // Connect to Database
-connectDB();
+connectDB().catch((err) => {
+  console.error('Initial DB connection attempt:', err.message);
+});
 
 const app = express();
 
@@ -22,11 +24,27 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-// Route Placeholders (To be implemented)
+// Serverless DB Connection Guard: ensures DB is ready before API route execution
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection error in request:', error.message);
+    res.status(500).json({
+      message: 'Database connection failed',
+      error: error.message,
+      hint: 'Please ensure MONGO_URI is set in Vercel Environment Variables and 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access.',
+    });
+  }
+});
+
+// Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/bookings', require('./routes/bookingRoutes'));
-// Global Error Handler Placeholder
+
+// Global Error Handler
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode).json({
@@ -37,6 +55,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
+}
+
+module.exports = app;
