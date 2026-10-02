@@ -68,26 +68,34 @@ const CreateEventScreen = ({ navigation, route }) => {
   const [imageUri, setImageUri] = useState(eventToEdit?.imageUrl || null);
   const [loading, setLoading] = useState(false);
 
-  const onDateChange = (event, selected) => {
+  const onDateValueChange = (event, selected) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
     }
-    if (event.type === 'set' && selected) {
+    if (selected) {
       const updated = new Date(eventDate);
       updated.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
       setEventDate(updated);
     }
   };
 
-  const onTimeChange = (event, selected) => {
+  const onDatePickerDismiss = () => {
+    setShowDatePicker(false);
+  };
+
+  const onTimeValueChange = (event, selected) => {
     if (Platform.OS === 'android') {
       setShowTimePicker(false);
     }
-    if (event.type === 'set' && selected) {
+    if (selected) {
       const updated = new Date(eventDate);
       updated.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
       setEventDate(updated);
     }
+  };
+
+  const onTimePickerDismiss = () => {
+    setShowTimePicker(false);
   };
 
   const formatDateDisplay = (dateObj) => {
@@ -445,7 +453,8 @@ const CreateEventScreen = ({ navigation, route }) => {
                       mode="date"
                       display="inline"
                       minimumDate={new Date()}
-                      onChange={onDateChange}
+                      onValueChange={onDateValueChange}
+                      onDismiss={onDatePickerDismiss}
                       themeVariant="light"
                     />
                   </View>
@@ -458,7 +467,8 @@ const CreateEventScreen = ({ navigation, route }) => {
                   mode="date"
                   display="default"
                   minimumDate={new Date()}
-                  onChange={onDateChange}
+                  onValueChange={onDateValueChange}
+                  onDismiss={onDatePickerDismiss}
                 />
               )
             )}
@@ -486,7 +496,8 @@ const CreateEventScreen = ({ navigation, route }) => {
                       value={eventDate}
                       mode="time"
                       display="spinner"
-                      onChange={onTimeChange}
+                      onValueChange={onTimeValueChange}
+                      onDismiss={onTimePickerDismiss}
                       themeVariant="light"
                     />
                   </View>
@@ -499,7 +510,8 @@ const CreateEventScreen = ({ navigation, route }) => {
                   mode="time"
                   display="default"
                   is24Hour={false}
-                  onChange={onTimeChange}
+                  onValueChange={onTimeValueChange}
+                  onDismiss={onTimePickerDismiss}
                 />
               )
             )}
