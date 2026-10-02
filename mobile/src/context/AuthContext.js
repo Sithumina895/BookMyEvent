@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.setItem('userToken', token);
       setUser(userData);
       setIsLoading(false);
-      return { success: true };
+      return { success: true, user: userData };
     } catch (e) {
       setIsLoading(false);
       const validationError = e.response?.data?.errors?.[0]?.msg;
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.setItem('userToken', token);
       setUser(userData);
       setIsLoading(false);
-      return { success: true };
+      return { success: true, user: userData };
     } catch (e) {
       setIsLoading(false);
       const validationError = e.response?.data?.errors?.[0]?.msg;

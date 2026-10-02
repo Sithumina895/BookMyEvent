@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import CustomInput from '../../components/CustomInput';
@@ -53,11 +54,26 @@ const LoginScreen = ({ navigation }) => {
         text1: 'Welcome Back',
         text2: 'Logged in successfully.',
       });
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-      } else {
-        navigation.navigate('Main');
-      }
+
+      const isOrganizer = result.user?.role === 'organizer';
+      const homeTabName = isOrganizer ? 'Dashboard' : 'Home';
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'Main',
+              params: {
+                screen: homeTabName,
+                params: {
+                  screen: 'EventList',
+                },
+              },
+            },
+          ],
+        })
+      );
     } else {
       Toast.show({
         type: 'error',

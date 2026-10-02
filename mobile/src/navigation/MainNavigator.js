@@ -74,6 +74,7 @@ const MainNavigator = () => {
   if (isOrganizer) {
     return (
       <Tab.Navigator
+        initialRouteName="Dashboard"
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarShowLabel: false,
@@ -111,6 +112,7 @@ const MainNavigator = () => {
 
   return (
     <Tab.Navigator
+      initialRouteName="Home"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: false,

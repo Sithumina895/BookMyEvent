@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { AuthContext } from '../../context/AuthContext';
 import CustomInput from '../../components/CustomInput';
@@ -64,11 +65,26 @@ const RegisterScreen = ({ navigation }) => {
         text1: 'Account Created Successfully',
         text2: 'Welcome to BookMyEvent.',
       });
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-      } else {
-        navigation.navigate('Main');
-      }
+
+      const isOrganizer = result.user?.role === 'organizer' || role === 'organizer';
+      const homeTabName = isOrganizer ? 'Dashboard' : 'Home';
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'Main',
+              params: {
+                screen: homeTabName,
+                params: {
+                  screen: 'EventList',
+                },
+              },
+            },
+          ],
+        })
+      );
     } else {
       Toast.show({
         type: 'error',
@@ -126,7 +142,7 @@ const RegisterScreen = ({ navigation }) => {
             <View style={styles.formCard}>
               <CustomInput
                 label="Full Name"
-                placeholder="e.g. Sithumina Mandakini"
+                placeholder="e.g. Sithumina Devshan"
                 value={name}
                 onChangeText={setName}
                 icon={User}

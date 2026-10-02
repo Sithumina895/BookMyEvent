@@ -7,8 +7,11 @@ import {
   Image,
   TouchableOpacity,
   Alert,
+  Modal,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 import colors from '../../theme/colors';
@@ -18,6 +21,7 @@ import {
   ImagePlus,
   ChevronLeft,
   Calendar,
+  Clock,
   MapPin,
   DollarSign,
   Users,
@@ -39,11 +43,21 @@ const CreateEventScreen = ({ navigation, route }) => {
   const [title, setTitle] = useState(eventToEdit?.title || '');
   const [description, setDescription] = useState(eventToEdit?.description || '');
   const [category, setCategory] = useState(eventToEdit?.category || 'Music');
-  const [date, setDate] = useState(
-    eventToEdit?.date
-      ? new Date(eventToEdit.date).toISOString().slice(0, 10)
-      : ''
-  );
+  
+  // Date & Time state (supports calendar and time selection)
+  const [eventDate, setEventDate] = useState(() => {
+    if (eventToEdit?.date) {
+      const parsed = new Date(eventToEdit.date);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 1);
+    defaultDate.setHours(18, 0, 0, 0); // Default to 6:00 PM tomorrow
+    return defaultDate;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
   const [venue, setVenue] = useState(eventToEdit?.venue || '');
   const [ticketPrice, setTicketPrice] = useState(
     eventToEdit?.ticketPrice !== undefined ? String(eventToEdit.ticketPrice) : ''
@@ -53,6 +67,60 @@ const CreateEventScreen = ({ navigation, route }) => {
   );
   const [imageUri, setImageUri] = useState(eventToEdit?.imageUrl || null);
   const [loading, setLoading] = useState(false);
+
+  const onDateChange = (event, selected) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (event.type === 'set' && selected) {
+      const updated = new Date(eventDate);
+      updated.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+      setEventDate(updated);
+    }
+  };
+
+  const onTimeChange = (event, selected) => {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
+    if (event.type === 'set' && selected) {
+      const updated = new Date(eventDate);
+      updated.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+      setEventDate(updated);
+    }
+  };
+
+  const formatDateDisplay = (dateObj) => {
+    return dateObj.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatTimeDisplay = (dateObj) => {
+    return dateObj.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const formatFullPreview = (dateObj) => {
+    const dateStr = dateObj.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    const timeStr = dateObj.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${dateStr} • ${timeStr}`;
+  };
 
   if (user && user.role !== 'organizer') {
     return (
@@ -99,7 +167,6 @@ const CreateEventScreen = ({ navigation, route }) => {
       !title.trim() ||
       !description.trim() ||
       !category.trim() ||
-      !date.trim() ||
       !venue.trim() ||
       !ticketPrice.trim() ||
       !totalCapacity.trim()
@@ -108,6 +175,15 @@ const CreateEventScreen = ({ navigation, route }) => {
         type: 'error',
         text1: 'Missing Information',
         text2: 'Please fill in all required event details.',
+      });
+      return;
+    }
+
+    if (!eventDate || isNaN(eventDate.getTime())) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Schedule',
+        text2: 'Please select a valid event date and start time.',
       });
       return;
     }
@@ -125,6 +201,8 @@ const CreateEventScreen = ({ navigation, route }) => {
       return;
     }
 
+    const isoDateString = eventDate.toISOString();
+
     setLoading(true);
     try {
       if (isEditing) {
@@ -133,7 +211,7 @@ const CreateEventScreen = ({ navigation, route }) => {
           formData.append('title', title.trim());
           formData.append('description', description.trim());
           formData.append('category', category.trim());
-          formData.append('date', date.trim());
+          formData.append('date', isoDateString);
           formData.append('venue', venue.trim());
           formData.append('ticketPrice', String(price));
           formData.append('totalCapacity', String(capacity));
@@ -151,7 +229,7 @@ const CreateEventScreen = ({ navigation, route }) => {
             title: title.trim(),
             description: description.trim(),
             category: category.trim(),
-            date: date.trim(),
+            date: isoDateString,
             venue: venue.trim(),
             ticketPrice: price,
             totalCapacity: capacity,
@@ -171,7 +249,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         formData.append('title', title.trim());
         formData.append('description', description.trim());
         formData.append('category', category.trim());
-        formData.append('date', date.trim());
+        formData.append('date', isoDateString);
         formData.append('venue', venue.trim());
         formData.append('ticketPrice', String(price));
         formData.append('totalCapacity', String(capacity));
@@ -296,13 +374,135 @@ const CreateEventScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            <CustomInput
-              label="Date & Time (YYYY-MM-DD) *"
-              placeholder="2026-11-20"
-              value={date}
-              onChangeText={setDate}
-              icon={Calendar}
-            />
+            {/* Date & Time Selection Section */}
+            <View style={styles.dateTimeSection}>
+              <Text style={styles.inputLabel}>Event Schedule *</Text>
+              
+              <View style={styles.dateTimeRow}>
+                {/* Date Picker Button */}
+                <TouchableOpacity
+                  style={styles.dateTimeCard}
+                  onPress={() => setShowDatePicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.dateTimeIconCircle}>
+                    <Calendar size={18} color={colors.primary} />
+                  </View>
+                  <View style={styles.dateTimeTextContainer}>
+                    <Text style={styles.dateTimeLabel}>Event Date</Text>
+                    <Text style={styles.dateTimeValue}>{formatDateDisplay(eventDate)}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.colSpace} />
+
+                {/* Time Picker Button */}
+                <TouchableOpacity
+                  style={styles.dateTimeCard}
+                  onPress={() => setShowTimePicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.dateTimeIconCircle}>
+                    <Clock size={18} color={colors.primary} />
+                  </View>
+                  <View style={styles.dateTimeTextContainer}>
+                    <Text style={styles.dateTimeLabel}>Start Time</Text>
+                    <Text style={styles.dateTimeValue}>{formatTimeDisplay(eventDate)}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Formatted Schedule Summary Banner */}
+              <View style={styles.scheduleSummary}>
+                <Sparkles size={14} color={colors.primary} style={{ marginRight: 6 }} />
+                <Text style={styles.scheduleSummaryText} numberOfLines={1}>
+                  {formatFullPreview(eventDate)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Native Date Pickers */}
+            {Platform.OS === 'ios' ? (
+              <Modal
+                visible={showDatePicker}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowDatePicker(false)}
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>Select Event Date</Text>
+                      <TouchableOpacity
+                        style={styles.modalDoneBtn}
+                        onPress={() => setShowDatePicker(false)}
+                      >
+                        <Text style={styles.modalDoneText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <DateTimePicker
+                      value={eventDate}
+                      mode="date"
+                      display="inline"
+                      minimumDate={new Date()}
+                      onChange={onDateChange}
+                      themeVariant="light"
+                    />
+                  </View>
+                </View>
+              </Modal>
+            ) : (
+              showDatePicker && (
+                <DateTimePicker
+                  value={eventDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={onDateChange}
+                />
+              )
+            )}
+
+            {/* Native Time Pickers */}
+            {Platform.OS === 'ios' ? (
+              <Modal
+                visible={showTimePicker}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowTimePicker(false)}
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalTitle}>Select Start Time</Text>
+                      <TouchableOpacity
+                        style={styles.modalDoneBtn}
+                        onPress={() => setShowTimePicker(false)}
+                      >
+                        <Text style={styles.modalDoneText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <DateTimePicker
+                      value={eventDate}
+                      mode="time"
+                      display="spinner"
+                      onChange={onTimeChange}
+                      themeVariant="light"
+                    />
+                  </View>
+                </View>
+              </Modal>
+            ) : (
+              showTimePicker && (
+                <DateTimePicker
+                  value={eventDate}
+                  mode="time"
+                  display="default"
+                  is24Hour={false}
+                  onChange={onTimeChange}
+                />
+              )
+            )}
 
             <CustomInput
               label="Venue & Address *"
@@ -552,6 +752,99 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+  dateTimeSection: {
+    marginBottom: 18,
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+  },
+  dateTimeCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 12,
+  },
+  dateTimeIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  dateTimeTextContainer: {
+    flex: 1,
+  },
+  dateTimeLabel: {
+    fontSize: 11,
+    color: colors.textLight,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  dateTimeValue: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '800',
+  },
+  scheduleSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(204, 75, 55, 0.15)',
+  },
+  scheduleSummaryText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '700',
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  modalDoneBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  modalDoneText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 13,
   },
 });
 
